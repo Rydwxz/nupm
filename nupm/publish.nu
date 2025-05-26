@@ -53,7 +53,7 @@ export def main [
             | sort-by-version
 
         if ($res | is-empty) {
-            throw-error ($"Cannot guess package type because pacakge"
+            throw-error ($"Cannot guess package type because package"
                 + $" ($pkg.name) was not found in registry ($registry). Specify"
                 + " the type manually with --git or --local flag.")
         }
