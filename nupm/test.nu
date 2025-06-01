@@ -1,6 +1,25 @@
 use utils/dirs.nu [ tmp-dir find-root ]
 use utils/log.nu throw-error
 
+# the idea is to run all tests outside of the user's interactive environment. This forces a module to be explicit about dependencies in it's nupm.nuon
+export def with-test-env [closure: closure, env_vars?: record]: nothing -> nothing {
+    use ../nupm/utils/dirs.nu tmp-dir
+
+    let home = tmp-dir nupm_test --ensure
+    let cache = tmp-dir 'nupm_test/cache' --ensure
+    let temp = tmp-dir 'nupm_test/temp' --ensure
+
+    with-env ({
+        NUPM_HOME: $home
+        NUPM_CACHE: $cache
+        NUPM_TEMP: $temp
+    } | merge $env_vars) $closure
+
+    rm --recursive $temp
+    rm --recursive $cache
+    rm --recursive $home
+}
+
 # Experimental test runner
 export def main [
     filter?: string  = ''  # Run only tests containing this substring

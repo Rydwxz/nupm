@@ -1,28 +1,10 @@
 use std assert
 
-use ../nupm/utils/dirs.nu tmp-dir
 use ../nupm
+use ../nupm/test.nu with-test-env
 
 const TEST_REGISTRY_PATH = ([tests packages registry registry.nuon] | path join)
-
-
-def with-test-env [closure: closure]: nothing -> nothing {
-    let home = tmp-dir nupm_test --ensure
-    let cache = tmp-dir 'nupm_test/cache' --ensure
-    let temp = tmp-dir 'nupm_test/temp' --ensure
-    let reg = { test: $TEST_REGISTRY_PATH }
-
-    with-env {
-        NUPM_HOME: $home
-        NUPM_CACHE: $cache
-        NUPM_TEMP: $temp
-        NUPM_REGISTRIES: $reg
-    } $closure
-
-    rm --recursive $temp
-    rm --recursive $cache
-    rm --recursive $home
-}
+const TEST_REGISTRY_RECORD = { NUPM_REGISTRIES: { test: $TEST_REGISTRY_PATH }}
 
 # Examples:
 #     make sure `$env.NUPM_HOME/scripts/script.nu` exists
@@ -43,7 +25,7 @@ export def install-script [] {
 
         assert installed [scripts spam_script.nu]
         assert installed [scripts spam_bar.nu]
-    }
+    } $TEST_REGISTRY_RECORD
 }
 
 export def install-module [] {
@@ -53,7 +35,7 @@ export def install-module [] {
         assert installed [scripts script.nu]
         assert installed [modules spam_module]
         assert installed [modules spam_module mod.nu]
-    }
+    } $TEST_REGISTRY_RECORD
 }
 
 export def install-custom [] {
@@ -61,37 +43,39 @@ export def install-custom [] {
         nupm install --path tests/packages/spam_custom
 
         assert installed [plugins nu_plugin_test]
-    }
+    } $TEST_REGISTRY_RECORD
 }
 
 export def install-from-local-registry [] {
     with-test-env {
+        let test_reg = $env.NUPM_REGISTRIES.test
         $env.NUPM_REGISTRIES = {}
-        nupm install --registry $TEST_REGISTRY_PATH spam_script
+        nupm install --registry $test_reg spam_script
         check-file-content 0.2.0
-    }
+    } $TEST_REGISTRY_RECORD
 
     with-test-env {
         nupm install --registry test spam_script
         check-file-content 0.2.0
-    }
+    } $TEST_REGISTRY_RECORD
 
     with-test-env {
         nupm install spam_script
         check-file-content 0.2.0
-    }
+    } $TEST_REGISTRY_RECORD
 }
 
 export def install-with-version [] {
     with-test-env {
         nupm install spam_script -v 0.1.0
         check-file-content 0.1.0
-    }
+    } $TEST_REGISTRY_RECORD
 }
 
 export def install-multiple-registries-fail [] {
     with-test-env {
-        $env.NUPM_REGISTRIES.test2 = $TEST_REGISTRY_PATH
+        let test_reg = $env.NUPM_REGISTRIES.test
+        $env.NUPM_REGISTRIES.test2 = $test_reg
 
         let out = try {
             nupm install spam_script
@@ -101,7 +85,7 @@ export def install-multiple-registries-fail [] {
         }
 
         assert ("Multiple registries contain package spam_script" in $out)
-    }
+    } $TEST_REGISTRY_RECORD
 }
 
 export def install-package-not-found [] {
@@ -114,13 +98,13 @@ export def install-package-not-found [] {
         }
 
         assert ("Package invalid-package not found in any registry" in $out)
-    }
+    } $TEST_REGISTRY_RECORD
 }
 
 export def search-registry [] {
     with-test-env {
         assert ((nupm search spam | length) == 4)
-    }
+    } $TEST_REGISTRY_RECORD
 }
 
 export def nupm-status-module [] {
@@ -130,7 +114,7 @@ export def nupm-status-module [] {
             [tests packages spam_module spam_module mod.nu] | path join))
         assert ($files.1.0 ends-with (
             [tests packages spam_module script.nu] | path join))
-    }
+    } $TEST_REGISTRY_RECORD
 }
 
 export def env-vars-are-set [] {
@@ -169,5 +153,5 @@ export def generate-local-registry [] {
         let expected = open $reg_file | to nuon
 
         assert equal $actual $expected
-    }
+    } $TEST_REGISTRY_RECORD
 }
