@@ -1,3 +1,6 @@
+Changes to this branch represent work that I think is "ready to use" but has not been merged with nushell/nupm
+
+
 # nupm - Nushell package manager
 
 ## Table of content
